@@ -15,8 +15,8 @@ fun MAX: one Int { 2 }
 -- predicate: rule out "garbage"
 pred wellformed[b: Board] {
     all row, col: Int | {
-            (row < MIN or row > 2 or 
-            col < 0 or col > 2) implies
+            (row < MIN or row > MAX or 
+            col < MIN or col > MAX) implies
                 no b.board[row][col]
     } 
 }
@@ -27,8 +27,8 @@ pred wellformed[b: Board] {
 pred allBoardsWellformed { all b: Board | wellformed[b] }
 example firstRowX_wellformed is {allBoardsWellformed} for {
     Board = `Board0
-    Red = `X0
-    Yellow = `O0
+    Red = `Red
+    Yellow = `Yellow
     Player = Red + Yellow
     `Board0.board = (0,0) -> Red + 
                     (0,1) -> Red + 
@@ -57,43 +57,49 @@ pred initial[b: Board] {
 pred Redturn[b: Board] {
     #{row, col: Int | b.board[row][col] = Red} 
     = 
-    #{row, col: Int | b.board[row][col] = O} 
+    #{row, col: Int | b.board[row][col] = Yellow} 
 }
 
-pred oturn[b: Board] {
+pred Yellowturn[b: Board] {
     #{row, col: Int | b.board[row][col] = Red} 
     = 
-    add[#{row, col: Int | b.board[row][col] = O}, 1]
+    add[#{row, col: Int | b.board[row][col] = Yellow}, 1]
 }
 
 pred balanced[b: Board] {
-    Redturn[b] or oturn[b]
+    Redturn[b] or Yellowturn[b]
 }
 
 pred winning[b: Board, p: Player] {
     -- 3 in a row
-    (some r: Int | { 
-        b.board[r][0] = p and
-        b.board[r][1] = p and
-        b.board[r][2] = p 
+    (some r, c: Int | { 
+        b.board[r][c] = p and
+        b.board[r][add[c, 1]] = p and
+        b.board[r][add[c, 2]] = p and
+        b.board[r][add[c, 3]] = p
     })
     or
     -- 3 in a col 
-    (some c: Int | { 
-        b.board[0][c] = p 
-        b.board[1][c] = p 
-        b.board[2][c] = p 
+    (some r, c: Int | { 
+        b.board[r][c] = p and
+        b.board[add[r, 1]][c] = p and
+        b.board[add[r, 2]][c] = p and
+        b.board[add[r, 3]][c] = p
     })
-    or { 
-        b.board[0][0] = p 
-        b.board[1][1] = p 
-        b.board[2][2] = p 
-    }
-    or { 
-        b.board[0][2] = p 
-        b.board[1][1] = p 
-        b.board[2][0] = p 
-    }
+    or 
+    (some r, c: Int | { 
+        b.board[r][c] = p and
+        b.board[add[r, 1]][add[c, 1]] = p and
+        b.board[add[r, 2]][add[c, 2]] = p and
+        b.board[add[r, 3]][add[c, 3]] = p
+    })
+    or 
+    (some r, c: Int | { 
+        b.board[r][c] = p and
+        b.board[subtract[r, 1]][subtract[c, 1]] = p and
+        b.board[subtract[r, 2]][subtract[c, 2]] = p and
+        b.board[subtract[r, 3]][subtract[r, 3]] = p
+    })
 
 }
 
@@ -108,16 +114,16 @@ pred move[pre: Board,
     -- it needs to be the player's turn 
     no pre.board[row][col]
     turn = Red implies Redturn[pre]
-    turn = Yellow implies oturn[pre]
+    turn = Yellow implies Yellowturn[pre]
 
     -- prevent winning boards from progressing
     all p: Player | not winning[pre, p]
 
     -- enforce valid move index
-    row >= 0 
-    row <= 2 
-    col >= 0
-    col <= 2
+    row >= MIN
+    row <= MAX
+    col >= MIN
+    col <= MAX
 
     -- balanced game
     -- game hasn't been won yet
