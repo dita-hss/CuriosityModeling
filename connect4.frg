@@ -8,69 +8,50 @@ sig Board {
     board: pfunc Int -> Int -> Player
 }
 
-fun MIN: one Int { 0 }
-fun MAX: one Int { 6 }
 
--- predicate: rule out "garbage"
+-- global constants like this
+fun MIN: one Int { 0 }
+fun MAXCOL: one Int { 6 }
+fun MAXROW: one Int { 7 }
+
+-- predicate: make sure that all boatds are a certain size
 pred wellformed[b: Board] {
     all row, col: Int | {
-            (row < MIN or row > MAX or 
-            col < MIN or col > MAX) implies
+            (row < MIN or row > MAXROW or 
+            col < MIN or col > MAXCOL) implies
                 no b.board[row][col]
     } 
 }
 
--- show me a world in which...
--- run {some b: Board | wellformed[b]}
+-- check that boards are wellformed
+// run {some b: Board | wellformed[b]}
 
-pred allBoardsWellformed { all b: Board | wellformed[b] }
-example firstRowX_wellformed is {allBoardsWellformed} for {
-    Board = `Board0
-    Red = `Red
-    Yellow = `Yellow
-    Player = Red + Yellow
-    `Board0.board = (0,0) -> Red + 
-                    (0,1) -> Red + 
-                    (0,2) -> Red
-}
-example offBoardX_not_wellformed is {not allBoardsWellformed} for {
-    Board = `Board0
-    Red = `X0
-    Yellow = `O0
-    Player = Red + O
-    `Board0.board = (-1,0) -> Red + 
-                    (0,1) -> Red + 
-                    (0,2) -> Red
-}
-
--------------------------------------
--- Wednesday, Jan 31
--------------------------------------
-
-/* An initial board */
+-- an intial board is one where no moves have been made
 pred initial[b: Board] {
     all row, col: Int | no b.board[row][col]
 }
 
-/* Whose turn is it (if anyone's)? */
+-- it is Red's turn if the number of reds is equal to the number of yellows
 pred Redturn[b: Board] {
     #{row, col: Int | b.board[row][col] = Red} 
     = 
     #{row, col: Int | b.board[row][col] = Yellow} 
 }
 
+-- it is yellow's turn if the number of reds is one more than the number of yellows
 pred Yellowturn[b: Board] {
     #{row, col: Int | b.board[row][col] = Red} 
     = 
     add[#{row, col: Int | b.board[row][col] = Yellow}, 1]
 }
 
+-- make sure that the game is balanced
 pred balanced[b: Board] {
     Redturn[b] or Yellowturn[b]
 }
 
 pred winning[b: Board, p: Player] {
-    -- 3 in a row
+    -- 4 in a row
     (some r, c: Int | { 
         b.board[r][c] = p and
         b.board[r][add[c, 1]] = p and
@@ -78,7 +59,7 @@ pred winning[b: Board, p: Player] {
         b.board[r][add[c, 3]] = p
     })
     or
-    -- 3 in a col 
+    -- 4 in a col 
     (some r, c: Int | { 
         b.board[r][c] = p and
         b.board[add[r, 1]][c] = p and
@@ -86,6 +67,7 @@ pred winning[b: Board, p: Player] {
         b.board[add[r, 3]][c] = p
     })
     or 
+    -- 4 in a diagonal
     (some r, c: Int | { 
         b.board[r][c] = p and
         b.board[add[r, 1]][add[c, 1]] = p and
@@ -93,43 +75,37 @@ pred winning[b: Board, p: Player] {
         b.board[add[r, 3]][add[c, 3]] = p
     })
     or 
+    -- 4 in a diagonal
     (some r, c: Int | { 
         b.board[r][c] = p and
         b.board[subtract[r, 1]][subtract[c, 1]] = p and
         b.board[subtract[r, 2]][subtract[c, 2]] = p and
         b.board[subtract[r, 3]][subtract[r, 3]] = p
     })
-
 }
 
--- "transition relation"
+-- from a pre board, we can make a move to a post board
 pred move[pre: Board, 
           row, col: Int, 
           turn: Player, 
           post: Board] {
-    -- guard: conditions necessary to make a move  
-    -- cant move somewhere with an existing mark
-    -- valid move location
-    -- it needs to be the player's turn 
+    -- guard: there must be some conditions that hold in order to make a move
+            -- one cannot move somewhere where a player currently is
+            -- valid move location
+            -- it needs to be the player's turn 
+    
     no pre.board[row][col]
     turn = Red implies Redturn[pre]
     turn = Yellow implies Yellowturn[pre]
 
-    -- prevent winning boards from progressing
+    -- once a player wins the game, the game no longer progresses
     all p: Player | not winning[pre, p]
 
     -- enforce valid move index
     row >= MIN
-    row <= MAX
+    row <= MAXROW
     col >= MIN
-    col <= MAX
-
-    -- balanced game
-    -- game hasn't been won yet
-    -- if it's a tie can't move 
-    -- board needs to be well-formed 
-
-    -- action: effects of making a move
+    col <= MAXCOL
 
     -- mark the location with the player 
     post.board[row][col] = turn 
@@ -141,7 +117,7 @@ pred move[pre: Board,
 }
 
 pred doNothing[pre, post: board] {
-    -- guard
+    -- guard: some player
     some p: Player | winning[pre, p]
 
     -- action
@@ -150,12 +126,7 @@ pred doNothing[pre, post: board] {
     }
 }
 
--------------------------------------
--- Friday, Feb 02
--------------------------------------
-
--- What can we do with "move"?
--- Preservation: 
+-- when one wins, the next state should still have the same player winning
 pred winningPreservedCounterexample {
   some pre, post: Board | {
     some row, col: Int, p: Player | 
@@ -164,23 +135,8 @@ pred winningPreservedCounterexample {
     not winning[post, Red]
   }
 }
-test expect {
-  winningPreserved: { 
-    allBoardsWellformed
-    winningPreservedCounterexample } is unsat
-}
 
--- This gives Forge a visualizer script to automatically run, without requiring you
--- to copy-paste it into the script editor. CHANGES WILL NOT BE REFLECTED IN THE FILE!
 option run_sterling "ttt_viz.js"
-
-// run {
-//     wellformed 
-//     some pre, post: Board | {
-//         some row, col: Int, p: Player | 
-//             move[pre, row, col, p, post]
-//     }
-// }
 
 one sig Game {
     first: one Board, 
@@ -194,113 +150,89 @@ pred game_trace {
         or
         doNothing[b, Game.next[b]]
         -- TODO: ensure Red moves first
+            -- red already always goes first due to the constraint of RedTurn/YellowTurn -amanda
     }}
 }
-// run { 
-//     game_trace
-//     all b: Board | { 
-//         some r,c: Int | {
-//             r >=0 r <= 2 
-//             c >=0 c <= 2
-//             no b.board[r][c]
-//         }
-//     }
-// } for 10 Board for {next is linear}
-// // ^ the annotation is faster than the constraint
+run { 
+    game_trace
+    all b: Board | { 
+        some r,c: Int | {
+            r >=0 r <= 2 
+            c >=0 c <= 2
+            no b.board[r][c]
+        }
+    }
+} for 10 Board for {next is linear}
 
+-------------------------------------TESTING------------------------------------------------
 
--------------------------------
--- Validation
--------------------------------
+pred allBoardsWellformed { all b: Board | wellformed[b] }
+example firstRowX_wellformed is {allBoardsWellformed} for {
+    Board = `Board0
+    Red = `Red
+    Yellow = `Yellow
+    Player = Red + Yellow
+    `Board0.board = (0,0) -> Red + 
+                    (0,1) -> Red + 
+                    (0,2) -> Red
+}
+
+example offBoardX_not_wellformed is {not allBoardsWellformed} for {
+    Board = `Board0
+    Red = `Red0
+    Yellow = `Yellow0
+    Player = Red + Yellow
+    `Board0.board = (-1,0) -> Red + 
+                    (0,1) -> Red + 
+                    (0,2) -> Red
+}
+
+test expect {
+  winningPreserved: { 
+    allBoardsWellformed
+    winningPreservedCounterexample } is unsat
+}
 
 pred moved[b: Board] { 
     some post: Board, r,c: Int, p: Player | 
         move[b, r, c, p, post] }
 pred didntDoNothing[b: Board] {
     not { some post: Board | doNothing[b, post]} }
+
+
+pred YellowturnTest {some b: Board | Yellowturn[b]}
+example RedMiddleOturn is {YellowturnTest} for {
+  Board = `Board0
+  Red = `Red0
+  Yellow = `Yellow0
+  Player = Red + Yellow --`X0 + `O0
+  `Board0.board =  (1, 1) -> `Red0 
+  -- no `Board0.board -- this works to say the field is empty
+}
+
+-- Assertion (without variables):
+pred someRedTurn {some b:Board | Redturn[b]}
+pred emptySingleBoard {
+  one b: Board | true
+  all b: Board, r,c: Int | no b.board[r][c]
+}
+
+--  emptySingleBoard => someXTurn 
+assert emptySingleBoard is sufficient for someRedTurn 
+-- same thing
+assert someRedTurn is necessary for emptySingleBoard
+
+---------- FAULTY TESTS ----------------
+// pred moved[b: Board] { 
+//     some post: Board, r,c: Int, p: Player | 
+//         move[b, r, c, p, post] }
+// pred didntDoNothing[b: Board] {
+//     not { some post: Board | doNothing[b, post]} }
 // assert all b: Board | 
 //   moved[b] is sufficient for didntDoNothing[b]
 // sufficient ~= implies
 // necessary ~= implies-in-reverse
 
-
-// assert all b: Board | 
-//   moved[b] is necessary for didntDoNothing[b]
-// -- ^ This fails, perhaps because the _final_ board won't 
-// --   be able to take either transition (perhaps, but we didn't invoke traces)...
-//  ... Why DOES this fail?
-
-
-
-
-
-
----------------------------------------------------------------
--- Feb 9 -- more validation, assertions, inductive preservation
----------------------------------------------------------------
-
-
--- assertions (in many ways) generalize examples. the 3 tests below
--- check for the same shape of behavior:
-
--- Example (make sure to define *ALL SIGS AND FIELDS*):
-
-pred someOTurn {some b: Board | oturn[b]}
-example RedMiddleOturn is {someOTurn} for {
-  Board = `Board0
-  Red = `X0
-  Yellow = `O0
-  Player = Red + Yellow --`X0 + `O0
-  `Board0.board =  (1, 1) -> `X0 
-  -- no `Board0.board -- this works to say the field is empty
-}
-
--- Assertion (without variables):
-pred someXTurn {some b:Board | Redturn[b]}
-pred emptySingleBoard {
-  one b: Board | true
-  all b: Board, r,c: Int | no b.board[r][c]
-}
---  emptySingleBoard => someXTurn 
-assert emptySingleBoard is sufficient for someXTurn 
--- same thing
-assert someXturn is necessary for emptySingleBoard
-
--- Assertion (with variables):
-pred emptyBoard[b: Board] { all r, c: Int | no b.board[r][c] }
-assert all b: Board | emptyBoard[b] is sufficient for Redturn[b]
-
--- a is sufficient for b    implies
--- a is necessary for b     <===
--- This last assertion is nice and concise, but *ALSO* doesn't implicitly only 
--- check situations where there is only one Board in the world... Another advantage
--- of quantification!
-
----------------
-
-
-
-
-
--- Example: is it ever possible to reach an unbalanced state?
-
--- Step 1: any initial states unbalanced? 
-assert all b: Board | 
-  initial[b] is sufficient for balanced[b]
-  for 1 Board, 3 Int
-
--- Step 2: any legal transitions from a balanced board to an unbalanced board?
-pred moveFromBalanced[pre: Board, row, col: Int, 
-       p: Player, post: board] {
-  balanced[pre]
-  move[pre, row, col, p, post]
-}
-assert all pre, post: Board, row, col: Int, p: Player | 
-  moveFromBalanced[pre, row, col, p, post] is sufficient for balanced[post]
-    for 2 Board, 4 Int
-
--- Note: we are able to get away with MUCH lower bounds using this technique. We don't need 
--- Forge to generate whole game traces; rather, we are reasoning abstractly about whether 
--- a single transition preserves balance. 
-
-*/
+// -- Assertion (with variables):
+// pred emptyBoard[b: Board] { all r, c: Int | no b.board[r][c] }
+// assert all b: Board | emptyBoard[b] is sufficient for Redturn[b]
