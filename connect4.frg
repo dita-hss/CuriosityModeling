@@ -1,5 +1,4 @@
 #lang forge/bsl 
--- ^ "Froglet" 
 
 abstract sig Player {} 
 one sig Red, Yellow extends Player {} 
@@ -8,13 +7,17 @@ sig Board {
     board: pfunc Int -> Int -> Player
 }
 
+one sig Game {
+    first: one Board, 
+    next: pfunc Board -> Board
+}
 
--- global constants like this
+-- constants for rows and columns
 fun MIN: one Int { 0 }
 fun MAXCOL: one Int { 6 }
 fun MAXROW: one Int { 7 }
 
--- predicate: make sure that all boatds are a certain size
+-- make sure that all boards are a certain size
 pred wellformed[b: Board] {
     all row, col: Int | {
             (row < MIN or row > MAXROW or 
@@ -23,33 +26,31 @@ pred wellformed[b: Board] {
     } 
 }
 
--- check that boards are wellformed
-// run {some b: Board | wellformed[b]}
-
 -- an intial board is one where no moves have been made
 pred initial[b: Board] {
     all row, col: Int | no b.board[row][col]
 }
 
--- it is Red's turn if the number of reds is equal to the number of yellows
+-- it is Red's turn if the number of reds is equal to the number of Yellows
 pred Redturn[b: Board] {
     #{row, col: Int | b.board[row][col] = Red} 
     = 
     #{row, col: Int | b.board[row][col] = Yellow} 
 }
 
--- it is yellow's turn if the number of reds is one more than the number of yellows
+-- it is Yellow's turn if the number of reds is one more than the number of Yellows
 pred Yellowturn[b: Board] {
     #{row, col: Int | b.board[row][col] = Red} 
     = 
     add[#{row, col: Int | b.board[row][col] = Yellow}, 1]
 }
 
--- make sure that the game is balanced
+-- must be either Red or Yellow's turn
 pred balanced[b: Board] {
     Redturn[b] or Yellowturn[b]
 }
 
+-- define what it means to win for a player on a board
 pred winning[b: Board, p: Player] {
     -- 4 in a row
     (some r, c: Int | { 
@@ -89,12 +90,12 @@ pred move[pre: Board,
           row, col: Int, 
           turn: Player, 
           post: Board] {
-    -- guard: there must be some conditions that hold in order to make a move
-            -- one cannot move somewhere where a player currently is
-            -- valid move location
-            -- it needs to be the player's turn 
+    -- guard: 
     
+    -- the square we move to is currently empty
     no pre.board[row][col]
+
+    -- it is the correct players turn
     turn = Red implies Redturn[pre]
     turn = Yellow implies Yellowturn[pre]
 
@@ -107,24 +108,58 @@ pred move[pre: Board,
     col >= MIN
     col <= MAXCOL
 
+    -- ensures that pieces get stacked
+    all int : Int | {
+        (int >= MIN and int < row) implies some pre.board[int][col]
+    }
+
     -- mark the location with the player 
     post.board[row][col] = turn 
-    -- updating the board; check for winner or tie 
+    
     -- other squares stay the same  ("frame condition")
     all row2: Int, col2: Int | (row!=row2 or col!=col2) implies {
         post.board[row2][col2] = pre.board[row2][col2]
     }
 }
 
+-- in the event a player has won, do nothing for remaining boards
 pred doNothing[pre, post: board] {
-    -- guard: some player
+    -- guard: some player has won
     some p: Player | winning[pre, p]
 
-    -- action
+    -- board stays the same
     all r, c: Int | {
         pre.board[r][c] = post.board[r][c]
     }
 }
+
+pred game_trace {
+    initial[Game.first]
+    all b: Board | { some Game.next[b] implies {
+        (some row, col: Int, p: Player | 
+            move[b, row, col, p, Game.next[b]])
+        or
+            doNothing[b, Game.next[b]]
+    }}
+}
+// ensures that a winner exists for some board
+pred winner_exists{
+    some p : Player, b : Board | {
+        winning[b, p] 
+    }
+}
+
+-- run games for up to 43 boards (6 * 7 + 1)
+run { 
+    game_trace
+    -- include if interested in games with a winner
+    winner_exists
+} for 15 Board for {next is linear}
+
+-------------------------------------Test Predicates------------------------------------------------
+
+-- all boards are wellformed
+pred allBoardsWellformed { all b: Board | wellformed[b] }
 
 -- when one wins, the next state should still have the same player winning
 pred winningPreservedCounterexample {
@@ -136,78 +171,30 @@ pred winningPreservedCounterexample {
   }
 }
 
-option run_sterling "ttt_viz.js"
-
-one sig Game {
-    first: one Board, 
-    next: pfunc Board -> Board
-}
-pred game_trace {
-    initial[Game.first]
-    all b: Board | { some Game.next[b] implies {
-        (some row, col: Int, p: Player | 
-            move[b, row, col, p, Game.next[b]])
-        or
-        doNothing[b, Game.next[b]]
-        -- TODO: ensure Red moves first
-            -- red already always goes first due to the constraint of RedTurn/YellowTurn -amanda
-    }}
-}
-run { 
-    game_trace
-    all b: Board | { 
-        some r,c: Int | {
-            r >=0 r <= 2 
-            c >=0 c <= 2
-            no b.board[r][c]
-        }
-    }
-} for 10 Board for {next is linear}
-
--------------------------------------TESTING------------------------------------------------
-
-pred allBoardsWellformed { all b: Board | wellformed[b] }
-example firstRowX_wellformed is {allBoardsWellformed} for {
-    Board = `Board0
-    Red = `Red
-    Yellow = `Yellow
-    Player = Red + Yellow
-    `Board0.board = (0,0) -> Red + 
-                    (0,1) -> Red + 
-                    (0,2) -> Red
-}
-
-example offBoardX_not_wellformed is {not allBoardsWellformed} for {
-    Board = `Board0
-    Red = `Red0
-    Yellow = `Yellow0
-    Player = Red + Yellow
-    `Board0.board = (-1,0) -> Red + 
-                    (0,1) -> Red + 
-                    (0,2) -> Red
-}
-
+-- unsat to move from one board to another a "unwin"
 test expect {
   winningPreserved: { 
     allBoardsWellformed
     winningPreservedCounterexample } is unsat
 }
 
+-- made a move on a board
 pred moved[b: Board] { 
     some post: Board, r,c: Int, p: Player | 
         move[b, r, c, p, post] }
+
 pred didntDoNothing[b: Board] {
     not { some post: Board | doNothing[b, post]} }
 
-
+-- 
 pred YellowturnTest {some b: Board | Yellowturn[b]}
+
 example RedMiddleOturn is {YellowturnTest} for {
   Board = `Board0
   Red = `Red0
   Yellow = `Yellow0
   Player = Red + Yellow --`X0 + `O0
   `Board0.board =  (1, 1) -> `Red0 
-  -- no `Board0.board -- this works to say the field is empty
 }
 
 -- Assertion (without variables):
