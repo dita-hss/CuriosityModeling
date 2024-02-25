@@ -8,9 +8,8 @@ sig Board {
     board: pfunc Int -> Int -> Player
 }
 
--- AFTER CLASS QUESTION: yes you can define global constants like this:
 fun MIN: one Int { 0 }
-fun MAX: one Int { 2 }
+fun MAX: one Int { 6 }
 
 -- predicate: rule out "garbage"
 pred wellformed[b: Board] {
