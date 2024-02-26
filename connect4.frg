@@ -144,18 +144,57 @@ pred game_trace {
             doNothing[b, Game.next[b]]
     }}
 }
+
+pred winningDiagonally[b: Board, p: Player] {
+    -- 4 in a diagonal from top-left to bottom-right
+    (some r, c: Int | { 
+        b.board[r][c] = p and
+        b.board[add[r, 1]][add[c, 1]] = p and
+        b.board[add[r, 2]][add[c, 2]] = p and
+        b.board[add[r, 3]][add[c, 3]] = p
+    })
+    or 
+    -- 4 in a diagonal from bottom-left to top-right
+    (some r, c: Int | { 
+        b.board[r][c] = p and
+        b.board[add[r, 1]][subtract[c, 1]] = p and
+        b.board[add[r, 2]][subtract[c, 2]] = p and
+        b.board[add[r, 3]][subtract[c, 3]] = p
+    })
+}
+
 // ensures that a winner exists for some board
-pred winner_exists{
+pred any_winner_exists{
     some p : Player, b : Board | {
         winning[b, p] 
     }
 }
 
+pred winningDiagonallyExists {
+    some p : Player, b : Board | {
+        winningDiagonally[b, p] 
+    }
+}
+
 -- run games for up to 43 boards (6 * 7 + 1)
+-- any player wins in 15 or less moves
+// run { 
+//     game_trace
+//     -- include if interested in games with a winner
+//     any_winner_exists
+// } for 15 Board for {next is linear}
+
+-- player wins diagonally in 15 or less moves
+-- takes a bit to run
 run { 
     game_trace
-    -- include if interested in games with a winner
-    winner_exists
+    winningDiagonallyExists
+
+    -- indicating a winner increases the amount of time to run due to redundant checks
+        -- yellow 
+        //some b : Board | winning[b, Yellow]
+        -- red
+        //some b : Board | winning[b, Red]
 } for 15 Board for {next is linear}
 
 -------------------------------------Test Predicates------------------------------------------------
