@@ -1,5 +1,6 @@
 #lang forge/bsl 
 
+option run_sterling "connect4s.js"
 abstract sig Player {} 
 one sig Red, Yellow extends Player {} 
 
@@ -14,8 +15,9 @@ one sig Game {
 
 -- constants for rows and columns
 fun MIN: one Int { 0 }
-fun MAXCOL: one Int { 6 }
-fun MAXROW: one Int { 7 }
+//we can make board bigger but for now it is 5x5
+fun MAXCOL: one Int { 5 }
+fun MAXROW: one Int { 5 }
 
 -- make sure that all boards are a certain size
 pred wellformed[b: Board] {
@@ -209,17 +211,3 @@ assert emptySingleBoard is sufficient for someRedTurn
 -- same thing
 assert someRedTurn is necessary for emptySingleBoard
 
----------- FAULTY TESTS ----------------
-// pred moved[b: Board] { 
-//     some post: Board, r,c: Int, p: Player | 
-//         move[b, r, c, p, post] }
-// pred didntDoNothing[b: Board] {
-//     not { some post: Board | doNothing[b, post]} }
-// assert all b: Board | 
-//   moved[b] is sufficient for didntDoNothing[b]
-// sufficient ~= implies
-// necessary ~= implies-in-reverse
-
-// -- Assertion (with variables):
-// pred emptyBoard[b: Board] { all r, c: Int | no b.board[r][c] }
-// assert all b: Board | emptyBoard[b] is sufficient for Redturn[b]

@@ -1,10 +1,10 @@
-//svg script for visualizer - still not connected to sterling
-//mock data below
-
 require("d3");
 d3.selectAll("svg > *").remove();
 
-const numRows = 7;
+//svg rough script for visualizer - NOT connected to sterling
+//only for mock data below
+
+const numRows = 6;
 const numCols = 6;
 const cellSize = 40;
 
