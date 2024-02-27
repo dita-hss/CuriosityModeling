@@ -12,7 +12,13 @@ From an instance of our visualizer, you should expect to see a sequence of board
 
 ### Signatures and Predicates: At a high level, what do each of your sigs and preds represent in the context of the model? Justify the purpose for their existence and how they fit together.
 
-Our important signatures are our players and the board. These are essential componenets of the game that helps us model the state of the board and what players fit into the board. Our game signature was added in order to model traces and progress through mutliple boards to create a game. Our most high level predicates include game_traces, winning, and balanced. Other predicates were explained above, but we will go into depth on the importance of these predicates. TODO
+Our important signatures are our players and the board. These are essential componenets of the game that helps us model the state of the board and what players fit into the board. Our game signature was added in order to model traces and progress through mutliple boards to create a game. Our most high level predicates include game_traces, winning, and balanced. Other predicates were explained above, but we will go into depth on the importance of these predicates. 
+
+Our balanced predicate enforces that it is always Red or Yellow's turn. We define a player's turn by the number of pieces of the board at one time. If red and yellow pieces are equal, then it is Red's turn, but if red has one more piece than yellow, it is Yellow's turn. One of these must be true at all times for the game to be balanced. 
+
+Our winning predicate checks if there is a winner for a certain board and player. This predicate checks for vertical or horizontal or diagonal winning by checking all the board indices for 4 consecutive pieces of the same player. The predicate is used to stop the game once a player has won, and enforce models that contain a winning player. 
+
+Our game_traces predicate checks that for every iteration of our game progressing board, there must a move made or nothing done as the result of someone has already won. This allows us to model entire games rather than just moves or certain boards. We can specify an amount of boards we want an enforce linearity and game_traces, and the result will be valid connect4 board sequences that progress from board to board. 
 
 ### Testing: What tests did you write to test your model itself? What tests did you write to verify properties about your domain area? Feel free to give a high-level overview of this.
 
@@ -21,3 +27,7 @@ TODO
 ### Documentation: Make sure your model and test files are well-documented. This will help in understanding the structure and logic of your project.
 
 Please see inline comments for further description on all predicates and signatures. 
+
+### Notes
+
+The tic-tac-toe model from class was used to develop the foundation of this model. 
