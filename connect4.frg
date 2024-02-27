@@ -15,7 +15,7 @@ one sig Game {
 
 -- constants for rows and columns
 fun MIN: one Int { 0 }
-//we can make board bigger but for now it is 5x5
+//we can make board bigger but for now it is 6x6
 fun MAXCOL: one Int { 5 }
 fun MAXROW: one Int { 5 }
 
@@ -81,9 +81,9 @@ pred winning[b: Board, p: Player] {
     -- 4 in a diagonal
     (some r, c: Int | { 
         b.board[r][c] = p and
-        b.board[subtract[r, 1]][subtract[c, 1]] = p and
-        b.board[subtract[r, 2]][subtract[c, 2]] = p and
-        b.board[subtract[r, 3]][subtract[r, 3]] = p
+        b.board[add[r, 1]][subtract[c, 1]] = p and
+        b.board[add[r, 2]][subtract[c, 2]] = p and
+        b.board[add[r, 3]][subtract[r, 3]] = p
     })
 }
 
@@ -189,12 +189,6 @@ pred winningDiagonallyExists {
 run { 
     game_trace
     winningDiagonallyExists
-
-    -- indicating a winner increases the amount of time to run due to redundant checks
-        -- yellow 
-        //some b : Board | winning[b, Yellow]
-        -- red
-        //some b : Board | winning[b, Red]
 } for 15 Board for {next is linear}
 
 -------------------------------------Test Predicates------------------------------------------------
