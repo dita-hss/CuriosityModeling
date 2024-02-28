@@ -78,7 +78,9 @@ function printBoard(board, xoffset, yoffset) {
 
 var yOffset = 1;
 var xOffset = 1;
-for (let b = 1; b <= 15; b++) {
+
+// in order to see more than 20 boards states- this line has to be altered
+for (let b = 1; b <= 20; b++) {
   if (Board.atom("Board" + b) != null) {
     printBoard(Board.atom("Board" + b), xOffset, yOffset);
     yOffset += numRows * cellSize + 10;
