@@ -180,11 +180,11 @@ pred winningDiagonallyExists {
 
 -------------------------------------Curiosity Runs------------------------------------------------
 -- 1. any player wins in 15 or less moves
-// run { 
-//     game_trace
-//     -- include if interested in games with a winner
-//     any_winner_exists
-// } for 15 Board for {next is linear}
+run { 
+    game_trace
+    -- include if interested in games with a winner
+    any_winner_exists
+} for 15 Board for {next is linear}
 
 
 
@@ -207,21 +207,38 @@ pred winningDiagonallyExists {
 
 
 -- 3. player wins after every possible move is made (36 moves)
-// run { 
+// run {
 //     game_trace
-//     -- include if interested in games with a winner
-//     any_winner_exists
-// } for 36 Board for {next is linear}
+//     #Board = 37
+//     -- board without a next state is a winning board
+//     all b: Board | not some Game.next[b] and (winning[b, Red] or winning[b, Yellow])
+// } for 37 Board for {next is linear}
 
 
 
 -- 4. no winner exists after every possible move is made (36 moves)
-run { 
-    game_trace
-    all p : Player, b : Board | {
-        not winning[b, p] 
-    }
-} for 36 Board for {next is linear}
+// run { 
+//     game_trace
+//     not any_winner_exists
+// } for 37 Board for {next is linear}
+
+
+
+-- 5. winning with no diagonals
+// run {
+//     game_trace
+//     any_winner_exists
+//     all b: Board | not winningDiagonally[b, Red] and not winningDiagonally[b, Yellow]
+// } for 36 Board for {next is linear}
+
+
+
+// -- 6. playing on non wellformed games 
+// run {
+//     game_trace
+//     some b: Board | not wellformed[b]
+// } for 37 Board for {next is linear}
+
 
 -------------------------------------Test Predicates------------------------------------------------
 
