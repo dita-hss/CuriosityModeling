@@ -243,4 +243,3 @@ pred emptySingleBoard {
 assert emptySingleBoard is sufficient for someRedTurn 
 -- same thing
 assert someRedTurn is necessary for emptySingleBoard
-
