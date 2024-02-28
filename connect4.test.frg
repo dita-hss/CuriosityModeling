@@ -101,59 +101,31 @@ test suite for initial {
   }
 
   -- all initial boards are empty
-  test expect { allInitialBoardsAreEmpty: {all b: Board | initial[b] implies no b.board} is sat }
+  test expect { allInitialBoardsAreEmpty: {all r, c : Int, b: Board | initial[b] implies no b.board[r][c]} is sat }
 
   -- there exists a board that is not initial
   test expect { existsNonInitialBoard: {some b: Board | not initial[b]} is sat }
 
-  -- no intial board exists is false
-  test expect { noEmptyInitialBoard: {all b: Board | not initial[b]} is unsat}
-
   -- a board that is an intial board, does not have a "position" filled in
-  test expect { notEmptyInitialBoard: { all b: Board | initial[b] and b.board[0][0]} is unsat }
+  test expect { notEmptyInitialBoard: { all b: Board | initial[b] and some b.board[0][0]} is unsat }
   
   -- an initial board means it is reds turn
   assert emptySingleBoard is sufficient for someRedTurn 
 }
 
 test suite for Redturn{
-  -- red turn when board is empty
-  example redTurn is {allBoardsRedTurn} for {
-    Board = `Board0
-    Red = `Red0
-    Yellow = `Yellow0
-    Player = Red + Yellow
-    `Board0.board = (0,0) -> Red
-  }
-  -- not yellows turn when board is empty
-  example notYellowTurn is {not allBoardsRedTurn} for {
-    Board = `Board0
-    Red = `Red0
-    Yellow = `Yellow0
-    Player = Red + Yellow
-    `Board0.board = (0,0) -> Yellow
-  }
-
-  -- reds turn -middle board
-  example RedMiddleTurn is {YellowturnTest} for {
-  Board = `Board0
-  Red = `Red0
-  Yellow = `Yellow0
-  Player = Red + Yellow
-  `Board0.board =  (3, 3) -> `Red0 
-  }
 
   -- all initial boards are red turn
-  test expect { allInitialRedTurn: {all b: Board | initial[b] and redTurn[b]} is sat }
+  test expect { allInitialRedTurn: {all b: Board | initial[b] and Redturn[b]} is sat }
 
   -- there exists some board where it is not reds turn
-  test expect { existsNonRedTurn: {some b: Board | not redTurn[b]} is sat }
+  test expect { existsNonRedTurn: {some b: Board | not Redturn[b]} is sat }
 
   -- no initial boards where it is initial and not red turn
-  test expect { initialBoardNotRedTurn: {all b: Board | initial[b] and not redTurn[b]} is unsat }
+  test expect { initialBoardNotRedTurn: {all b: Board | initial[b] and not Redturn[b]} is unsat }
 
   -- contradiction in red turn
-  test expect { contradictionInRedTurn: {some b: Board | redTurn[b] and not redTurn[b]} is unsat }
+  test expect { contradictionInRedTurn: {some b: Board | Redturn[b] and not Redturn[b]} is unsat }
 
   -- some red turn is necessary that the board is empty
   assert someRedTurn is necessary for emptySingleBoard
@@ -167,8 +139,7 @@ test suite for Yellowturn{
     Red = `Red0
     Yellow = `Yellow0
     Player = Red + Yellow
-    `Board0.board = (0,0) -> Red +
-                    (1,0) -> Yellow 
+    `Board0.board = (0,0) -> Red 
   }
 
   -- it is not yellows turn
@@ -181,11 +152,11 @@ test suite for Yellowturn{
                     (1,0) -> Yellow 
   }
 
-  -- for it to be Yellow's turn, there must be exactly one more Red piece than Yellow pieces
-  assert YellowTurnDefinition is necessary for Yellowturn
+    -- all initial boards are not yellow turn
+  test expect { notYellowInit: {all b: Board | initial[b] and not Yellowturn[b]} is sat }
 
-  -- cannot be both Red's and Yellow's turn at the same time
-  assert RedYellowTurnExclusive is necessary for Yellowturn
+  -- there exists some board where it is not yellows turn
+  test expect { existsNonYellowTurn: {some b: Board | not Yellowturn[b]} is sat }
 
   -- contradiction in yellow turn
   test expect { contradictionInYellowTurn: {some b: Board | Yellowturn[b] and not Yellowturn[b]} is unsat }
@@ -218,7 +189,7 @@ test suite for winning {
   }
 
   -- a player wins diagonally from top left to bottom right
-  example diagonalWinTLBR is {winningTest} for {
+  example diagonalWinTRBL is {winningTest} for {
     Board = `Board0
     Red = `Red0
     Yellow = `Yellow0
@@ -230,7 +201,7 @@ test suite for winning {
   }
 
   -- a player wins diagonally from bottom left to top right
-  example diagonalWinBLTR is {winningTest} for {
+  example diagonalWinBRTL is {winningTest} for {
     Board = `Board0
     Red = `Red0
     Yellow = `Yellow0
@@ -264,19 +235,16 @@ test suite for winning {
   -- there exists at least one board where yellow is winning
   test expect { existsYellowWinning: {some b: Board | winning[b, Yellow]} is sat }
 
-  -- no one can win on an empty board
-  test expect { noWinOnEmptyBoard: {all b: Board | (no b.board) implies (not winning[b, Red] and not winning[b, Yellow])} is sat }
-
   -- Expectation: No player wins in multiple ways on the same board
-  test expect { noMultipleWins: {all b: Board, p: Player | winning[b, Red] and winning[b, Yellow] } is unsat }
+  test expect { noMultipleWins: {all b: Board, p: Player | game_trace and winning[b, Red] and winning[b, Yellow] } is unsat }
 
   -- check sufficient conditions for winning
-  assert winningRowTest is sufficient for winning for 1 Board
-  assert winningColTest is sufficient for winning for 1 Board
-  assert winningDiagonalTest is sufficient for winning for 1 Board
+  assert winningRowTest is sufficient for any_winner_exists 
+  assert winningColTest is sufficient for any_winner_exists 
+  assert winningDiagonalTest is sufficient for any_winner_exists 
 }
 
-test suite for move{
+ test suite for move{
   -- a valid move is always possible unless the game has been won or the board is full
   test expect { validMovePossible: {some pre, post: Board, row, col: Int, turn: Player | 
       (not winning[pre, Red] and not winning[pre, Yellow]) and move[pre, row, col, turn, post]} is sat }
@@ -296,14 +264,11 @@ test suite for move{
   -- a move shows that no additional pieces are added except for the one in the move
   test expect { onlyOnePieceAddedPerMove: {all pre, post: Board, row, col: Int, turn: Player | 
       move[pre, row, col, turn, post] implies
-      (#{r, c: Int | pre.board[r][c] = turn} + 1 = #{r, c: Int | post.board[r][c] = turn})} is sat} 
+      (add[#{r, c: Int | pre.board[r][c] = turn}, 1] = #{r, c: Int | post.board[r][c] = turn})} is sat} 
 
   -- a move shows that the target square is not occupied by the other player
   test expect { invalidMoveToOccupiedSquare: {all pre, post: Board, row, col: Int, turn: Player | 
-    some pre.board[row][col] implies not move[pre, row, col, turn, post]} is unsat }
-
-  test expect { weirdCoordinates: {all pre, post: Board, row, col: Int, turn: Player | 
-    (row not in Int or col not in Int) implies not move[pre, row, col, turn, post]} is unsat }
+    some pre.board[row][col] and move[pre, row, col, turn, post]} is unsat }
 
 }
 

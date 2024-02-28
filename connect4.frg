@@ -83,7 +83,7 @@ pred winning[b: Board, p: Player] {
         b.board[r][c] = p and
         b.board[add[r, 1]][subtract[c, 1]] = p and
         b.board[add[r, 2]][subtract[c, 2]] = p and
-        b.board[add[r, 3]][subtract[r, 3]] = p
+        b.board[add[r, 3]][subtract[c, 3]] = p
     })
 }
 
@@ -254,19 +254,13 @@ pred emptySingleBoard {
 }
 
 -- if the game is inital, then it is Red's turn
-pred allBoardsRedTurn { all b: Board | initial[b] implies Redturn[b] }
+pred initRedTurn { all b: Board | initial[b] implies Redturn[b] else not Redturn[b]}
 
 -- there is a board where it is Red's turn
 pred someRedTurn { some b: Board | Redturn[b]}
 
 -- there is a board where it is Yellow's turn
 pred YellowturnTest {all b: Board | Yellowturn[b]}
-
--- definition of what it measnd to be yellows turn
-pred YellowTurnDefinition {
-    all b: Board | Yellowturn[b] implies 
-      (#{row, col: Int | b.board[row][col] = Red} = add[#{row, col: Int | b.board[row][col] = Yellow}, 1])
-}
 
 -- it cannot be both red and yellow's turn
 pred RedYellowTurnExclusive {
@@ -280,8 +274,7 @@ pred winningTest {
 
 -- a player has won by getting 4 in a row
 pred winningRowTest {
-    some b: Board, p: Player | 
-    some r, c: Int | { 
+    some r, c: Int, b: Board, p: Player | {
         b.board[r][c] = p and
         b.board[r][add[c, 1]] = p and
         b.board[r][add[c, 2]] = p and
@@ -291,8 +284,7 @@ pred winningRowTest {
 
 -- a player has won by getting 4 in a col
 pred winningColTest {
-    some b: Board, p: Player | 
-    some r, c: Int | { 
+    some r, c: Int, b: Board, p: Player | {
         b.board[r][c] = p and
         b.board[add[r, 1]][c] = p and
         b.board[add[r, 2]][c] = p and
@@ -302,8 +294,7 @@ pred winningColTest {
 
 -- a player has won by getting 4 in a diagonal
 pred winningDiagonalTest {
-    some b: Board, p: Player | 
-    some r, c: Int | { 
+    some r, c: Int, b: Board, p: Player | {
         b.board[r][c] = p and
         b.board[add[r, 1]][add[c, 1]] = p and
         b.board[add[r, 2]][add[c, 2]] = p and
@@ -334,7 +325,7 @@ pred moved[b: Board] {
 
 pred didntDoNothing[b: Board] {
     not { some post: Board | doNothing[b, post]} }
-    
+
 example RedMiddleOturn is {YellowturnTest} for {
   Board = `Board0
   Red = `Red0
@@ -342,15 +333,3 @@ example RedMiddleOturn is {YellowturnTest} for {
   Player = Red + Yellow --`X0 + `O0
   `Board0.board =  (1, 1) -> `Red0 
 }
-
--- Assertion (without variables):
-pred someRedTurn {some b:Board | Redturn[b]}
-pred emptySingleBoard {
-  one b: Board | true
-  all b: Board, r,c: Int | no b.board[r][c]
-}
-
---  emptySingleBoard => someXTurn 
-assert emptySingleBoard is sufficient for someRedTurn 
--- same thing
-assert someRedTurn is necessary for emptySingleBoard
