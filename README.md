@@ -30,7 +30,7 @@ Our game_traces predicate checks that for every iteration of our game progressin
 
 ### Testing: What tests did you write to test your model itself? What tests did you write to verify properties about your domain area? Feel free to give a high-level overview of this.
 
-Our test suites aim to test predicates with a significant roles in the model as well as some helper predicates. Below is a description of the suites and the test contained within. 
+Our test suites aim to test predicates with a significant role in the model as well as some helper predicates. Below is a description of the suites and the tests contained within. 
 
 - **Wellformed Test Suite:** Checks that the game board is well-formed
     - Valid piece placements within a specified range (e.g., a 5x5 board).
