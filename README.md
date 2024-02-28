@@ -11,6 +11,7 @@ In our model design, we have sigs representing our players Red and Yellow. We al
 From an instance of our visualizer, you should expect to see a sequence of boards with red and yellow markers being added as moves. To run our custom visualizer, go to the script tab and press run. The sequences of boards is vertical (i.e top left is first board, right under is second board, etc.). 
 
 Here are some runs that we ran for curiosity:
+
     - Games where a winner emerges in 15 moves or less
     - Games where a player wins diagonally within 15 moves where specific player scenarios (Red or Yellow) can also be explored
     - Games where the game is won after all possible moves are played
